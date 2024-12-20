@@ -16,6 +16,7 @@ body {
   color: white;
   padding: 20px 0;
   text-align: center;
+  position: relative;
 }
 
 .title {
@@ -48,6 +49,21 @@ body {
   background: #d18e00;
 }
 
+.dark-mode-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #F4B400;
+  cursor: pointer;
+}
+
+.dark-mode-btn:hover {
+  color: #d18e00;
+}
+
 main {
   padding: 20px;
   text-align: center;
@@ -62,21 +78,6 @@ main {
 .intro p {
   margin: 10px 0 20px;
   color: #555;
-}
-
-.explore-btn {
-  background-color: #F4B400;
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 25px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: background 0.3s ease;
-}
-
-.explore-btn:hover {
-  background: #d18e00;
 }
 
 .item-list {
@@ -141,4 +142,38 @@ footer {
   color: white;
   padding: 10px 0;
   margin-top: 20px;
+}
+
+/* Dark Mode */
+body.dark-mode {
+  background-color: #121212;
+  color: #e0e0e0;
+}
+
+body.dark-mode .header {
+  background: linear-gradient(to right, #333333, #555555);
+}
+
+body.dark-mode .nav-btn {
+  background: #444;
+  color: white;
+}
+
+body.dark-mode .nav-btn:hover,
+body.dark-mode .nav-btn.active {
+  background: #666;
+}
+
+body.dark-mode .item {
+  background: #1e1e1e;
+  border: 1px solid #444;
+  color: #e0e0e0;
+}
+
+body.dark-mode .item-name {
+  color: #F4B400;
+}
+
+body.dark-mode footer {
+  background: #333333;
 }
