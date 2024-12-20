@@ -1,10 +1,13 @@
+# **🎟️ Personalized Event Recommendation Engine**
+
 ---
 
-# Personalized Event Recommendation Engine
+## **🚀 Project Overview**
 
-### **Overview**
+The **Personalized Event Recommendation Engine** is a web application that recommends events to users based on their **favorite items**, **current location**, and preferences. It uses the **TicketMaster API** for fetching event details and a combination of Java, MongoDB, and a responsive frontend.
 
-The **Personalized Event Recommendation Engine** is a dynamic web application that recommends events based on user preferences and geographical location. Users can:
+---
+Users can:
 1. View nearby events.
 2. Save events to their favorites.
 3. Get personalized event recommendations based on their favorite items.
@@ -133,20 +136,18 @@ Follow these steps to set up and run the project locally:
 
 ## **Screenshots**
 
-Add the following screenshots to the `screenshots/` folder in your project and reference them here:
-```markdown
+
 ### **Home Page**
-![Home Page](screenshots/screenshot4.png)
+![Home Page](screenshots/Screenshot4.png)
 
 ### **Dark Mode**
-![Dark Mode](screenshots/screenshot2.png)
+![Dark Mode](screenshots/Screenshot2.png)
 
 ### **Recommend Page**
-![Recommend Page](screenshots/screenshot3.png)
+![Recommend Page](screenshots/Screenshot3.png)
 
 ### **Favorites**
-![Favorites](screenshots/screenshot5.png)
-```
+![Favorites](screenshots/Screenshot5.png)
 
 ---
 
@@ -164,7 +165,7 @@ Add the following screenshots to the `screenshots/` folder in your project and r
   - `lat`: Latitude (e.g., `37.38`)
   - `lon`: Longitude (e.g., `-122.08`)
 - Response:
-  ```json
+  json
   [
     {
       "item_id": "123",
@@ -176,7 +177,6 @@ Add the following screenshots to the `screenshots/` folder in your project and r
       "url": "https://example.com/event-page"
     }
   ]
-  ```
 
 ### **Get Recommendations**
 - Endpoint: `GET /EventRecommender/recommendation`
