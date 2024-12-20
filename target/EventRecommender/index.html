@@ -1,34 +1,42 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Event Recommendation">
-  <meta name="author" content="Your Name">
-  <title>Event Recommendation</title>
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+  <title>Event Recommender</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="static/styles/main.css">
-  <!-- Google Font: Clean Sans-serif -->
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div class="container">
-    <header class="header">
-      <h1 class="title">Event Recommender</h1>
-    </header>
+  <header class="header">
+    <div class="container">
+      <h1 class="title"><span class="highlight">Event</span> Recommender</h1>
+      <nav class="nav">
+        <button id="nearby-btn" class="nav-btn active">Nearby</button>
+        <button id="fav-btn" class="nav-btn">Favorite</button>
+        <button id="recommend-btn" class="nav-btn">Recommended</button>
+      </nav>
+    </div>
+  </header>
 
-    <nav class="nav-bar">
-      <a href="#" id="nearby-btn" class="nav-btn active">Nearby</a>
-      <a href="#" id="fav-btn" class="nav-btn">Favorites</a>
-      <a href="#" id="recommend-btn" class="nav-btn">Recommended</a>
-    </nav>
-
-    <section class="main-section">
-      <ul id="item-list">
-        <!-- Items dynamically populated here -->
+  <main>
+    <section class="intro">
+      <h2>Discover Your Next Favorite Event</h2>
+      <p>Find events, save favorite, and get personalized recommendations near you!</p>
+    </section>
+    <section>
+      <ul id="item-list" class="item-list">
+        <!-- Items will be dynamically loaded here -->
       </ul>
     </section>
-  </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2024 Event Recommender | Made with ❤️ for Event Enthusiasts</p>
+  </footer>
+
   <script src="static/scripts/main.js"></script>
 </body>
 </html>

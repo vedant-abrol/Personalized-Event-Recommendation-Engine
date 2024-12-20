@@ -1,77 +1,81 @@
 package com.eventrecommender.algorithm;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
+import com.eventrecommender.db.mongodb.MongoDBConnection;
 import com.eventrecommender.db.mysql.DBConnection;
-import com.eventrecommender.db.mysql.DBConnectionFactory;
 import com.eventrecommender.entity.Item;
-
-
+import com.eventrecommender.external.ExternalAPI;
+import com.eventrecommender.external.ExternalAPIFactory;
 
 public class GeoRecommendation {
-	public List<Item> recommendItems(String userId, double lat, double lon) {
-		DBConnection conn = DBConnectionFactory.getDBConnection();
 
-		Set<String> favoriteItemIds = conn.getFavoriteItemIds(userId); // step 1 // db queries
+    private final DBConnection conn = MongoDBConnection.getInstance();
+    private final ExternalAPI ticketMasterAPI = ExternalAPIFactory.getExternalAPI();
 
-		Set<String> allCategories = new HashSet<>(); // step 2
-		for (String itemId : favoriteItemIds) {
-			allCategories.addAll(conn.getCategories(itemId)); // db queries
-		}
+    /**
+     * Recommend events for the user based on their favorite items and current location.
+     */
+    public List<Item> recommendItems(String userId, double lat, double lon) {
+        // Step 1: Fetch favorite item IDs for the user
+        Set<String> favoriteItemIds = conn.getFavoriteItemIds(userId);
+        if (favoriteItemIds == null || favoriteItemIds.isEmpty()) {
+            System.out.println("No favorite items found for user: " + userId);
+            return new ArrayList<>(); // Return empty list if no favorite items
+        }
+    
+        // Step 2: Fetch categories associated with favorite items
+        Set<String> favoriteCategories = new HashSet<>();
+        for (String itemId : favoriteItemIds) {
+            Set<String> categories = conn.getCategories(itemId);
+            if (categories != null) {
+                favoriteCategories.addAll(categories);
+            }
+        }
+    
+        // Handle case where categories are empty or undefined
+        favoriteCategories.remove("Undefined");
+        if (favoriteCategories.isEmpty()) {
+            favoriteCategories.add(""); // Default to empty keyword
+        }
+    
+        // Step 3: Fetch events from TicketMasterAPI based on favorite categories
+        Set<Item> recommendedItems = new HashSet<>();
+        for (String category : favoriteCategories) {
+            // Use TicketMaster API to fetch events based on keyword/category
+            List<Item> items = ticketMasterAPI.searchEventsByKeyword(lat, lon, category);
+            if (items != null) { // Ensure items are not null before adding
+                recommendedItems.addAll(items);
+            }
+        }
+    
+        // Step 4: Exclude already favorited items
+        List<Item> filteredItems = new ArrayList<>();
+        for (Item item : recommendedItems) {
+            if (item != null && !favoriteItemIds.contains(item.getItemId())) {
+                filteredItems.add(item);
+            }
+        }
+    
+        // Step 5: Rank the events by distance from the user's current location
+        filteredItems.sort(Comparator.comparingDouble(item -> 
+            getDistance(item.getLatitude(), item.getLongitude(), lat, lon)
+        ));
+    
+        return filteredItems;
+    }
+    
 
-		allCategories.remove("Undefined"); // tune category set
-		if (allCategories.isEmpty()) {
-			allCategories.add("");
-		}
-
-		Set<Item> recommendedItems = new HashSet<>(); // step 3
-		for (String category : allCategories) {
-			List<Item> items = conn.searchItems(userId, lat, lon, category); // call external API
-			recommendedItems.addAll(items);
-		}
-
-		// Question: why we use list now instead of set?
-		// Answer: because we will have ranking now.
-		List<Item> filteredItems = new ArrayList<>(); // step 4
-		for (Item item : recommendedItems) {
-			if (!favoriteItemIds.contains(item.getItemId())) {
-				filteredItems.add(item);
-			}
-		}
-
-		// step 5. perform ranking of these items based on distance.
-		Collections.sort(filteredItems, new Comparator<Item>() {
-			@Override
-			public int compare(Item item1, Item item2) {
-				// Question: can we make this ranking even better with more dimensions?
-				// What other feathers can be used here?
-				double distance1 = getDistance(item1.getLatitude(), item1.getLongitude(), lat, lon);
-				double distance2 = getDistance(item2.getLatitude(), item2.getLongitude(), lat, lon);
-				// return the increasing order of distance.
-				return (int) (distance1 - distance2);
-			}
-		});
-
-		return filteredItems;
-	}
-
-	// Calculate the distances between two geolocations.
-	// Source : http://andrew.hedges.name/experiments/haversine/
-	private static double getDistance(double lat1, double lon1, double lat2, double lon2) {
-		double dlon = lon2 - lon1;
-		double dlat = lat2 - lat1;
-		double a = Math.sin(dlat / 2 / 180 * Math.PI) * Math.sin(dlat / 2 / 180 * Math.PI)
-				+ Math.cos(lat1 / 180 * Math.PI) * Math.cos(lat2 / 180 * Math.PI) * Math.sin(dlon / 2 / 180 * Math.PI)
-						* Math.sin(dlon / 2 / 180 * Math.PI);
-		double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-		// Radius of earth in miles.
-		double R = 3961;
-		return R * c;
-	}
-
+    /**
+     * Calculate distance between two latitude/longitude points using Haversine formula.
+     */
+    private static double getDistance(double lat1, double lon1, double lat2, double lon2) {
+        double dlon = Math.toRadians(lon2 - lon1);
+        double dlat = Math.toRadians(lat2 - lat1);
+        double a = Math.pow(Math.sin(dlat / 2), 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) * Math.pow(Math.sin(dlon / 2), 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        double R = 3961; // Earth's radius in miles
+        return R * c;
+    }
 }

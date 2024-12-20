@@ -2,6 +2,7 @@ package com.eventrecommender.db.mongodb;
 
 import static com.mongodb.client.model.Filters.eq;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -17,6 +18,8 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.FindIterable;
 
@@ -33,10 +36,26 @@ public class MongoDBConnection implements DBConnection {
     }
 
     private MongoDBConnection() {
-        // Connects to local MongoDB server using latest MongoDB driver
-        String connectionString = "mongodb://localhost:27017"; // Update if needed
-        mongoClient = MongoClients.create(connectionString);
+        // Step 1: Connect to MongoDB
+        mongoClient = MongoClients.create(MongoDBUtil.MONGO_URI);
         db = mongoClient.getDatabase(MongoDBUtil.DB_NAME);
+        initializeCollections();
+    }
+
+    /**
+     * Initialize collections: create collections, ensure indexes, and insert
+     * initial data.
+     */
+    private void initializeCollections() {
+        // Users Collection
+        MongoCollection<Document> usersCollection = db.getCollection("users");
+        usersCollection.drop(); // Remove old collection
+        usersCollection.insertOne(new Document()
+                .append("first_name", "John")
+                .append("last_name", "Smith")
+                .append("password", "3229c1097c00d282d586be050")
+                .append("user_id", "1111"));
+        usersCollection.createIndex(new Document("user_id", 1), new IndexOptions().unique(true));
     }
 
     @Override
@@ -66,14 +85,18 @@ public class MongoDBConnection implements DBConnection {
     public Set<String> getFavoriteItemIds(String userId) {
         Set<String> favoriteItems = new HashSet<>();
         MongoCollection<Document> usersCollection = db.getCollection("users");
-        FindIterable<Document> iterable = usersCollection.find(eq("user_id", userId));
+        Document userDoc = usersCollection.find(Filters.eq("user_id", userId)).first();
 
-        Document userDoc = iterable.first();
         if (userDoc != null && userDoc.containsKey("favorite")) {
             @SuppressWarnings("unchecked")
             List<String> list = (List<String>) userDoc.get("favorite");
-            favoriteItems.addAll(list);
+            if (list != null) {
+                favoriteItems.addAll(list);
+            }
+        } else {
+            System.out.println("No favorites found for userId: " + userId);
         }
+
         return favoriteItems;
     }
 
@@ -90,20 +113,9 @@ public class MongoDBConnection implements DBConnection {
                 ItemBuilder builder = new ItemBuilder();
                 builder.setItemId(doc.getString("item_id"));
                 builder.setName(doc.getString("name"));
-                builder.setCity(doc.getString("city"));
-                builder.setState(doc.getString("state"));
-                builder.setCountry(doc.getString("country"));
-                builder.setZipcode(doc.getString("zip_code"));
-                builder.setRating(doc.getDouble("rating"));
-                builder.setAddress(doc.getString("address"));
-                builder.setLatitude(doc.getDouble("latitude"));
-                builder.setLongitude(doc.getDouble("longitude"));
-                builder.setDescription(doc.getString("description"));
-                builder.setSnippet(doc.getString("snippet"));
-                builder.setSnippetUrl(doc.getString("snippet_url"));
-                builder.setImageUrl(doc.getString("image_url"));
-                builder.setUrl(doc.getString("url"));
                 builder.setCategories(getCategories(itemId));
+                builder.setImageUrl(doc.getString("image_url"));
+                builder.setAddress(doc.getString("address"));
                 builder.setDate(doc.getString("startDate"));
                 builder.setPriceRange(doc.getString("priceRange"));
                 favoriteItems.add(builder.build());
@@ -122,20 +134,45 @@ public class MongoDBConnection implements DBConnection {
         if (itemDoc != null && itemDoc.containsKey("categories")) {
             @SuppressWarnings("unchecked")
             List<String> list = (List<String>) itemDoc.get("categories");
-            categories.addAll(list);
+            if (list != null) {
+                categories.addAll(list);
+            }
         }
         return categories;
     }
 
     @Override
-    public List<Item> searchItems(String userId, double lat, double lon, String term) {
-        // Connect to external API
+    public List<Item> searchItems(double lat, double lon) {
         ExternalAPI api = ExternalAPIFactory.getExternalAPI();
-        List<Item> items = api.search(lat, lon, term);
+        List<Item> items = api.getNearbyEvents(lat, lon);
         for (Item item : items) {
-            // Save the item into our own database
             saveItem(item);
         }
+        return items;
+    }
+
+    @Override
+    public List<Item> searchItemsRecommended(String userId, double lat, double lon, String term) {
+        System.out.println("Inside searchItemsRecommended");
+        System.out.println("Params - userId: " + userId + ", lat: " + lat + ", lon: " + lon + ", term: " + term);
+
+        ExternalAPI api = ExternalAPIFactory.getExternalAPI();
+        List<Item> items = api.searchEventsByKeyword(lat, lon, term);
+
+        if (items == null) {
+            System.out.println("API returned null items for term: " + term);
+        } else {
+            System.out.println("Items retrieved: " + items.size());
+        }
+
+        for (Item item : items) {
+            if (item != null) {
+                saveItem(item);
+            } else {
+                System.out.println("Null item encountered while saving.");
+            }
+        }
+
         return items;
     }
 
@@ -148,20 +185,9 @@ public class MongoDBConnection implements DBConnection {
                 new Document("$set", new Document()
                         .append("item_id", item.getItemId())
                         .append("name", item.getName())
-                        .append("city", item.getCity())
-                        .append("state", item.getState())
-                        .append("country", item.getCountry())
-                        .append("zip_code", item.getZipcode())
-                        .append("rating", item.getRating())
-                        .append("address", item.getAddress())
-                        .append("latitude", item.getLatitude())
-                        .append("longitude", item.getLongitude())
-                        .append("description", item.getDescription())
-                        .append("snippet", item.getSnippet())
-                        .append("snippet_url", item.getSnippetUrl())
-                        .append("image_url", item.getImageUrl())
-                        .append("url", item.getUrl())
                         .append("categories", item.getCategories())
+                        .append("image_url", item.getImageUrl())
+                        .append("address", item.getAddress())
                         .append("startDate", item.getDate())
                         .append("priceRange", item.getPriceRange())),
                 options);

@@ -62,7 +62,19 @@ public interface DBConnection {
 	 *            (Nullable)
 	 * @return list of items
 	 */
-	public List<Item> searchItems(String userId, double lat, double lon, String term);
+	public List<Item> searchItems(double lat, double lon);
+
+    	/**
+	 * Search items near a geolocation and a term (optional).
+	 * 
+	 * @param userId
+	 * @param lat
+	 * @param lon
+	 * @param term
+	 *            (Nullable)
+	 * @return list of items
+	 */
+	public List<Item> searchItemsRecommended(String userId, double lat, double lon, String term);
 
 	/**
 	 * Save item into db.

@@ -7,12 +7,10 @@ com/eventrecommender/filter/CORSFilter.class
 com/eventrecommender/external/ExternalAPI.class
 com/eventrecommender/entity/Item$ItemBuilder.class
 com/eventrecommender/external/ExternalAPIFactory.class
-com/eventrecommender/db/mongodb/MongoDBTableCreation.class
+com/eventrecommender/rpc/RecommendItem.class
 com/eventrecommender/external/TicketMasterAPI.class
 com/eventrecommender/external/GeoHash.class
 com/eventrecommender/db/mysql/DBConnection.class
-com/eventrecommender/algorithm/GeoRecommendation$1.class
-com/eventrecommender/rpc/RecommandItem.class
 com/eventrecommender/db/mongodb/MongoDBUtil.class
 com/eventrecommender/rpc/SearchItem.class
 com/eventrecommender/rpc/ItemHistory.class

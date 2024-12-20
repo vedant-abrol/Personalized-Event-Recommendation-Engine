@@ -43,13 +43,12 @@ public class SearchItem extends HttpServlet {
 		String userId = request.getParameter("user_id");
 		double lat = Double.parseDouble(request.getParameter("lat"));
 		double lon = Double.parseDouble(request.getParameter("lon"));
-		String term = request.getParameter("term"); // Term can be empty or null.
 
 		DBConnection conn = DBConnectionFactory.getDBConnection();
         if (conn == null) {
             throw new ServletException("DBConnection is null. Check database connection configuration.");
         }
-		List<Item> items = conn.searchItems(userId, lat, lon, term);
+		List<Item> items = conn.searchItems(lat, lon);
 		List<JSONObject> list = new ArrayList<>();
 
 		Set<String> favorite = conn.getFavoriteItemIds(userId);

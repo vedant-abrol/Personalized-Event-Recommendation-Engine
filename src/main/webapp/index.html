@@ -1,57 +1,42 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Event Recommendation">
-  <meta name="author" content="Your Name">
-  <title>Event Recommendation</title>
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+  <title>Event Recommender</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="static/styles/main.css">
-  <link href="https://fonts.googleapis.com/css?family=Catamaran:100" rel="stylesheet">
-  <link href='https://fonts.googleapis.com/css?family=Black+Ops+One' rel='stylesheet' type='text/css'>
 </head>
 <body>
-  
-  <div class="container">
-    <header class="slidewrapper">
-      <div class="backslides"></div>
-      <p>
-        <span>Event</span>
-        <br /> Recommender
-      </p>
-    </header>
+  <header class="header">
+    <div class="container">
+      <h1 class="title"><span class="highlight">Event</span> Recommender</h1>
+      <nav class="nav">
+        <button id="nearby-btn" class="nav-btn active">Nearby</button>
+        <button id="fav-btn" class="nav-btn">Favorite</button>
+        <button id="recommend-btn" class="nav-btn">Recommended</button>
+      </nav>
+    </div>
+  </header>
 
-    <section class="main-section">
-
-      <aside id="item-nav">
-        <nav class="main-nav">
-          <a href="#" id="nearby-btn" class="main-nav-btn active">Nearby</a>
-          <a href="#" id="fav-btn" class="main-nav-btn">Favorite</i></a>
-          <a href="#" id="recommend-btn" class="main-nav-btn">Recommended</i></a>
-        </nav>
-      </aside>
-
-      <ul id="item-list">
-        <li class="item">
-          <img alt="item image" src="https://s3-media3.fl.yelpcdn.com/bphoto/EmBj4qlyQaGd9Q4oXEhEeQ/ms.jpg" />
-          <div>
-            <a class="item-name" href="#">Item</a>
-            <p class="item-category">Vegetarian</p>
-            <div class="stars">
-              <i class="fa fa-star"></i>
-              <i class="fa fa-star"></i>
-              <i class="fa fa-star"></i>
-            </div>
-          </div>
-          <p class="item-address">699 Calderon Ave<br/>Mountain View<br/> CA</p>
-          <div class="fav-link">
-            <i class="fa fa-heart"></i>
-          </div>
-        </li>
+  <main>
+    <section class="intro">
+      <h2>Discover Your Next Favorite Event</h2>
+      <p>Find events, save favorite, and get personalized recommendations near you!</p>
+    </section>
+    <section>
+      <ul id="item-list" class="item-list">
+        <!-- Items will be dynamically loaded here -->
       </ul>
     </section>
-  </div>
-  <script src="static/scripts/main.js"></script>  
+  </main>
+
+  <footer>
+    <p>&copy; 2024 Event Recommender | Made with ❤️ for Event Enthusiasts</p>
+  </footer>
+
+  <script src="static/scripts/main.js"></script>
 </body>
 </html>

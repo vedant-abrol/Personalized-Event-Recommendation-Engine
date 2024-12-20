@@ -16,42 +16,27 @@ import org.json.JSONObject;
 import com.eventrecommender.entity.Item;
 import com.eventrecommender.entity.Item.ItemBuilder;
 
-
-public class TicketMasterAPI implements ExternalAPI{
+public class TicketMasterAPI implements ExternalAPI {
 	private static final String API_HOST = "app.ticketmaster.com";
 	private static final String SEARCH_PATH = "/discovery/v2/events.json";
-	private static final String DEFAULT_TERM = ""; // no restriction
+	private static final String RECOMMEND_PATH = "/discovery/v2/suggest.json";
 	private static final String API_KEY = "vAiO3Wm87BQCgSAcmtDnprIEZudbFFD5"; // use your api key
 
-	@Override
-	public List<Item> search(double lat, double lon, String term) {
-		// create a base url, based on API_HOST and SEARCH_PATH
-		String url = "http://" + API_HOST + SEARCH_PATH;
-		// Convert geo location to geo hash with a precision of 4 (+- 20km)
-		String geoHash = GeoHash.encodeGeohash(lat, lon, 4);
-		if (term == null) {
-			term = DEFAULT_TERM;
-		}
-		// Encode term in url since it may contain special characters
-		term = urlEncodeHelper(term);
-		// Make your url query part like: 
-		// "apikey=12345&geoPoint=abcd&keyword=music&radius=50" by default 50 miles, return 20 events
-		String query = String.format("apikey=%s&geoPoint=%s&keyword=%s&radius=50", API_KEY, geoHash, term);
+	/**
+	 * Common method to handle HTTP request to TicketMaster API and return events.
+	 */
+	private List<Item> sendRequestToTicketMaster(String url, String query) {
 		try {
-			// Open a HTTP connection between your Java application and TicketMaster based on url
-			//The HttpUrlConnection class allows us to perform basic HTTP requests without the use of any additional libraries.
+			// Open an HTTP connection between your Java application and TicketMaster API
 			HttpURLConnection connection = (HttpURLConnection) new URL(url + "?" + query).openConnection();
-			// Set requrest method to GET
 			connection.setRequestMethod("GET");
 
-			// Send request to TicketMaster and get response, response code could be
-			// returned directly
-			// response body is saved in InputStream of connection.
-			int responseCode = connection.getResponseCode();
+			// Log request and response status
 			System.out.println("\nSending 'GET' request to URL : " + url + "?" + query);
+			int responseCode = connection.getResponseCode();
 			System.out.println("Response Code : " + responseCode);
 
-			// Now read response body to get events data
+			// Read the response body
 			BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
 			String inputLine;
 			StringBuilder response = new StringBuilder();
@@ -60,15 +45,51 @@ public class TicketMasterAPI implements ExternalAPI{
 			}
 			in.close();
 
-			// Extract events array only
+			// Extract events array from response
 			JSONObject responseJson = new JSONObject(response.toString());
 			JSONObject embedded = (JSONObject) responseJson.get("_embedded");
 			JSONArray events = (JSONArray) embedded.get("events");
+
 			return getItemList(events);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
+	}
+
+	@Override
+	public List<Item> getNearbyEvents(double lat, double lon) {
+		// Create a base URL for search without a keyword
+		String url = "http://" + API_HOST + SEARCH_PATH;
+
+		// Convert geo location to geo hash with a precision of 4 (+- 20km)
+		String geoHash = GeoHash.encodeGeohash(lat, lon, 4);
+
+		// Formulate the query with only geo location
+		String query = String.format("apikey=%s&geoPoint=%s&radius=50", API_KEY, geoHash);
+		System.out.println("Sending request for nearby events.");
+
+		// Send request and return item list
+		return sendRequestToTicketMaster(url, query);
+	}
+
+	@Override
+	public List<Item> searchEventsByKeyword(double lat, double lon, String term) {
+		// Create a base URL for search with a term
+		String url = "http://" + API_HOST + RECOMMEND_PATH;
+
+		// Convert geo location to geo hash with a precision of 4 (+- 20km)
+		String geoHash = GeoHash.encodeGeohash(lat, lon, 4);
+
+		// Encode term in URL to handle special characters
+		term = urlEncodeHelper(term);
+
+		// Formulate the query with keyword and geo location
+		String query = String.format("apikey=%s&geoPoint=%s&keyword=%s&radius=50", API_KEY, geoHash, term);
+		System.out.println("Sending request with keyword: " + term);
+
+		// Send request and return item list
+		return sendRequestToTicketMaster(url, query);
 	}
 
 	private String urlEncodeHelper(String url) {
@@ -157,11 +178,11 @@ public class TicketMasterAPI implements ExternalAPI{
 	}
 
 	private String getImageUrl(JSONObject event) throws JSONException {
-        // Get from “image” field
+		// Get from “image” field
 		if (!event.isNull("images")) {
 			JSONArray imagesArray = event.getJSONArray("images");
 			if (imagesArray.length() >= 1) {
-				return getStringFieldOrNull(imagesArray.getJSONObject(0), "url" );
+				return getStringFieldOrNull(imagesArray.getJSONObject(0), "url");
 			}
 		}
 		return null;
@@ -181,35 +202,35 @@ public class TicketMasterAPI implements ExternalAPI{
 	}
 
 	private Set<String> getCategories(JSONObject event) throws JSONException {
-        // Get from “classifications” => “segment” => “name”
+		// Get from “classifications” => “segment” => “name”
 		Set<String> categories = new HashSet<>();
 		JSONArray classifications = (JSONArray) event.get("classifications");
 		for (int j = 0; j < classifications.length(); j++) {
 			JSONObject classification = classifications.getJSONObject(j);
 			JSONObject segment = classification.getJSONObject("segment");
 			categories.add(segment.getString("name"));
-			if(!classification.isNull("genre")) {
+			if (!classification.isNull("genre")) {
 				JSONObject genre = classification.getJSONObject("genre");
 				categories.add(genre.getString("name"));
 			}
 		}
 		return categories;
 	}
-	
+
 	private String getStartDate(JSONObject event) throws JSONException {
 		JSONObject dates = (JSONObject) event.get("dates");
-		JSONObject start =  (JSONObject) dates.get("start");
+		JSONObject start = (JSONObject) dates.get("start");
 		return start.getString("localDate");
 	}
-	
+
 	private String getPriceRange(JSONObject event) throws JSONException {
-		if(event.isNull("priceRanges")) {
+		if (event.isNull("priceRanges")) {
 			return "NA";
 		}
 		JSONObject priceRanges = ((JSONArray) event.get("priceRanges")).getJSONObject(0);
 		int min = priceRanges.getInt("min");
 		int max = priceRanges.getInt("max");
-		return "$" + min+ "-" + max;
+		return "$" + min + "-" + max;
 	}
 
 	private String getStringFieldOrNull(JSONObject event, String field) throws JSONException {
@@ -220,26 +241,4 @@ public class TicketMasterAPI implements ExternalAPI{
 		return event.isNull(field) ? 0.0 : event.getDouble(field);
 	}
 
-	
-	/**
-	 * Main entry for sample TicketMaster API requests.
-	 */
-	public static void main(String[] args) {
-		TicketMasterAPI tmApi = new TicketMasterAPI();
-		// Mountain View, CA
-		tmApi.queryAPI(37.38, -122.08);
-	}
-	
-	// print function to show JSON array returned from TicketMaster for debugging.
-	private void queryAPI(double lat, double lon) {
-		List<Item> itemList = search(lat, lon, null);
-		try {
-			for (Item item : itemList) {
-				JSONObject jsonObject = item.toJSONObject();
-				System.out.println(jsonObject);
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
 }
