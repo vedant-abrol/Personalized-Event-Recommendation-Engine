@@ -152,7 +152,7 @@ Follow these steps to set up and run the project locally:
 ---
 
 ### **Demo Video**
-![Demo](screenshots/ScreenRecording.gif)
+![Demo](screenshots/ScreenRecordingDemo.gif)
 
 ---
 
