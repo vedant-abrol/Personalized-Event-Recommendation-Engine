@@ -2,11 +2,7 @@ package com.eventrecommender.db.mongodb;
 
 import static com.mongodb.client.model.Filters.eq;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
+import java.util.*;
 import org.bson.Document;
 
 import com.eventrecommender.db.mysql.DBConnection;
@@ -23,11 +19,19 @@ import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.FindIterable;
 
+/**
+ * This class handles the MongoDB database operations and acts as an implementation of the DBConnection interface.
+ */
 public class MongoDBConnection implements DBConnection {
-    private static MongoDBConnection instance;
-    private MongoClient mongoClient;
-    private MongoDatabase db;
+    private static MongoDBConnection instance; // Singleton instance
+    private MongoClient mongoClient;          // MongoDB client
+    private MongoDatabase db;                 // Reference to the database
 
+    /**
+     * Singleton pattern to get a single instance of MongoDBConnection.
+     * 
+     * @return The single instance of DBConnection.
+     */
     public static DBConnection getInstance() {
         if (instance == null) {
             instance = new MongoDBConnection();
@@ -35,29 +39,40 @@ public class MongoDBConnection implements DBConnection {
         return instance;
     }
 
+    /**
+     * Private constructor to initialize the MongoDB connection and collections.
+     */
     private MongoDBConnection() {
-        // Step 1: Connect to MongoDB
+        // Step 1: Connect to MongoDB using the URI and database name
         mongoClient = MongoClients.create(MongoDBUtil.MONGO_URI);
         db = mongoClient.getDatabase(MongoDBUtil.DB_NAME);
+
+        // Step 2: Initialize collections (users, items, etc.)
         initializeCollections();
     }
 
     /**
-     * Initialize collections: create collections, ensure indexes, and insert
-     * initial data.
+     * Initializes the necessary MongoDB collections, indexes, and inserts default data.
      */
     private void initializeCollections() {
-        // Users Collection
+        // Initialize "users" collection
         MongoCollection<Document> usersCollection = db.getCollection("users");
-        usersCollection.drop(); // Remove old collection
+
+        // Drop old data (if present) and insert default user
+        usersCollection.drop();
         usersCollection.insertOne(new Document()
                 .append("first_name", "John")
                 .append("last_name", "Smith")
-                .append("password", "3229c1097c00d282d586be050")
+                .append("password", "3229c1097c00d282d586be050") // Example hashed password
                 .append("user_id", "1111"));
+
+        // Create an index on user_id to ensure uniqueness
         usersCollection.createIndex(new Document("user_id", 1), new IndexOptions().unique(true));
     }
 
+    /**
+     * Closes the MongoDB client connection.
+     */
     @Override
     public void close() {
         if (mongoClient != null) {
@@ -65,6 +80,12 @@ public class MongoDBConnection implements DBConnection {
         }
     }
 
+    /**
+     * Adds a list of item IDs to the user's favorites.
+     * 
+     * @param userId  The ID of the user.
+     * @param itemIds The list of item IDs to add to the user's favorites.
+     */
     @Override
     public void setFavoriteItems(String userId, List<String> itemIds) {
         MongoCollection<Document> usersCollection = db.getCollection("users");
@@ -73,6 +94,12 @@ public class MongoDBConnection implements DBConnection {
                 new Document("$push", new Document("favorite", new Document("$each", itemIds))));
     }
 
+    /**
+     * Removes a list of item IDs from the user's favorites.
+     * 
+     * @param userId  The ID of the user.
+     * @param itemIds The list of item IDs to remove from the user's favorites.
+     */
     @Override
     public void unsetFavoriteItems(String userId, List<String> itemIds) {
         MongoCollection<Document> usersCollection = db.getCollection("users");
@@ -81,6 +108,12 @@ public class MongoDBConnection implements DBConnection {
                 new Document("$pullAll", new Document("favorite", itemIds)));
     }
 
+    /**
+     * Retrieves a set of favorite item IDs for a given user.
+     * 
+     * @param userId The ID of the user.
+     * @return A set of favorite item IDs.
+     */
     @Override
     public Set<String> getFavoriteItemIds(String userId) {
         Set<String> favoriteItems = new HashSet<>();
@@ -100,6 +133,12 @@ public class MongoDBConnection implements DBConnection {
         return favoriteItems;
     }
 
+    /**
+     * Retrieves a set of favorite items (details) for a given user.
+     * 
+     * @param userId The ID of the user.
+     * @return A set of favorite items.
+     */
     @Override
     public Set<Item> getFavoriteItems(String userId) {
         Set<String> itemIds = getFavoriteItemIds(userId);
@@ -124,6 +163,12 @@ public class MongoDBConnection implements DBConnection {
         return favoriteItems;
     }
 
+    /**
+     * Retrieves the categories for a given item ID.
+     * 
+     * @param itemId The ID of the item.
+     * @return A set of categories associated with the item.
+     */
     @Override
     public Set<String> getCategories(String itemId) {
         Set<String> categories = new HashSet<>();
@@ -141,6 +186,13 @@ public class MongoDBConnection implements DBConnection {
         return categories;
     }
 
+    /**
+     * Searches for nearby items/events using latitude and longitude.
+     * 
+     * @param lat The latitude.
+     * @param lon The longitude.
+     * @return A list of nearby items/events.
+     */
     @Override
     public List<Item> searchItems(double lat, double lon) {
         ExternalAPI api = ExternalAPIFactory.getExternalAPI();
@@ -151,31 +203,34 @@ public class MongoDBConnection implements DBConnection {
         return items;
     }
 
+    /**
+     * Searches for recommended items/events based on a search term.
+     * 
+     * @param userId The ID of the user.
+     * @param lat    The latitude.
+     * @param lon    The longitude.
+     * @param term   The search term or keyword.
+     * @return A list of recommended items.
+     */
     @Override
     public List<Item> searchItemsRecommended(String userId, double lat, double lon, String term) {
-        System.out.println("Inside searchItemsRecommended");
-        System.out.println("Params - userId: " + userId + ", lat: " + lat + ", lon: " + lon + ", term: " + term);
-
         ExternalAPI api = ExternalAPIFactory.getExternalAPI();
         List<Item> items = api.searchEventsByKeyword(lat, lon, term);
 
-        if (items == null) {
-            System.out.println("API returned null items for term: " + term);
-        } else {
-            System.out.println("Items retrieved: " + items.size());
-        }
-
-        for (Item item : items) {
-            if (item != null) {
+        if (items != null) {
+            for (Item item : items) {
                 saveItem(item);
-            } else {
-                System.out.println("Null item encountered while saving.");
             }
         }
 
         return items;
     }
 
+    /**
+     * Saves an item to the "items" collection in MongoDB.
+     * 
+     * @param item The item to be saved.
+     */
     @Override
     public void saveItem(Item item) {
         UpdateOptions options = new UpdateOptions().upsert(true);

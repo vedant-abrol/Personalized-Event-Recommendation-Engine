@@ -1,180 +1,192 @@
-# **✨ Personalized Event Recommendation Engine**
+# 🎟️ **Personalized Event Recommendation Engine**
 
 ---
 
-## **🚀 Project Overview**
+## **📚 Project Overview**
 
-The **Personalized Event Recommendation Engine** is a web application that recommends events to users based on their **favorite items**, **current location**, and preferences. It uses the **TicketMaster API** for fetching event details and a combination of Java, MongoDB, and a responsive frontend.
+The **Personalized Event Recommendation Engine** is an interactive web application that allows users to discover events tailored to their preferences. Using the **TicketMaster API** for event data and advanced algorithms for personalized recommendations, the system delivers a seamless user experience for finding and managing events. 
 
----
-Users can:
-1. View nearby events.
-2. Save events to their favorites.
-3. Get personalized event recommendations based on their favorite items.
-
-The project uses the **TicketMaster API** for event data and integrates MongoDB for user preferences and event caching.
-
-Live Demo: [Event Recommendation Engine](https://52.204.138.195:8443/EventRecommender/)
+The project is designed with a **3-tier architecture**, including a robust backend, responsive frontend, and data management systems. Real-time user behavior analysis is supported through the **ELK Stack (Elasticsearch, Logstash, Kibana)**.
 
 ---
 
-## **Features**
+## **🎯 Features**
 
-- **Search Nearby Events:** Shows events based on the user's current geographical location.
-- **Favorites Management:** Save events to your favorites with a heart icon toggle.
-- **Personalized Recommendations:** Suggests events similar to the user's favorite events and ranks them by distance.
-- **Dark Mode:** A toggle for switching between light and dark themes.
-- **Real-Time Log Analysis:** Monitor user behavior and system performance using the **ELK Stack** (Elasticsearch, Logstash, Kibana).
+- **Event Discovery:** Users can find nearby events based on their geographical location.
+- **Favorites Management:** Easily add and remove favorite events with a heart toggle.
+- **Personalized Recommendations:** Suggests events based on the user's favorite categories and ranks them by proximity.
+- **Dark Mode:** Toggle between light and dark themes for enhanced user experience.
+- **Real-Time Analysis:** Monitor system logs and user behavior with **Elasticsearch**, **Logstash**, and **Kibana**.
 
 ---
 
-## **Tech Stack**
+## **💡 Business Design**
+
+### **Why?**
+Many events people like are either hard to discover or irrelevant to their preferences. This system fills that gap by offering:
+- Tailored event recommendations.
+- A personalized user experience.
+
+### **Use Cases**
+1. **Search Nearby Events**: Locate events based on geolocation.
+2. **Favorite Events**: Save events for easy access later.
+3. **Get Recommendations**: Receive personalized event suggestions.
+
+---
+
+## **🔧 Tech Stack**
 
 ### **Frontend**
-- HTML5, CSS3
-- JavaScript (ES6)
-- Font Awesome (Icons)
-- Google Fonts (Typography)
+- **HTML5, CSS3**: For responsive and accessible design.
+- **JavaScript (ES6)**: Core scripting for interaction.
+- **Font Awesome**: Icons for visual enhancements.
 
 ### **Backend**
-- Java Servlets (Jakarta EE)
-- MongoDB for user and item storage
-- TicketMaster API for event data
+- **Java Servlets (Jakarta EE)**: Handles business logic.
+- **MongoDB**: Stores user preferences and event data.
+- **MySQL**: Stores detailed event and user information.
 
-### **Tools & Libraries**
-- **GeoHash:** For encoding geographical locations.
-- **Postman:** For API testing.
-- **Tomcat Server:** For running the backend.
-- **ELK Stack (Elasticsearch, Logstash, Kibana):** For log analysis and visualization.
-
----
-
-## **Architecture Overview**
-
-1. **Frontend**: HTML, CSS, and JavaScript interact with RESTful APIs to display and manage events.
-2. **Backend**:
-   - **SearchItem** servlet: Handles requests for nearby events.
-   - **RecommendItem** servlet: Handles personalized event recommendations.
-   - **ItemHistory** servlet: Manages favorite events (add/remove functionality).
-3. **External APIs**:
-   - **TicketMaster API**: Fetches events using keywords, location, and categories.
-   - **GeoHash**: Converts latitude/longitude to GeoHash for API requests.
-4. **Database**:
-   - **MongoDB**: Stores users' favorite items and cached event data.
-5. **Log Monitoring**:
-   - **Logstash**: Processes logs and stores them in Elasticsearch.
-   - **Elasticsearch**: Stores log data for analysis.
-   - **Kibana**: Visualizes log data through dashboards.
+### **Real-Time Log Analysis**
+- **Elasticsearch**: Stores and indexes logs for querying.
+- **Logstash**: Processes logs and sends them to Elasticsearch.
+- **Kibana**: Visualizes logs with dashboards.
 
 ---
 
-## **Installation Instructions**
+## **📐 Architecture Overview**
+
+### **3-Tier Architecture**
+1. **Presentation Tier**: User interface using HTML, CSS, and JavaScript.
+2. **Logic Tier**: Java-based business logic for search and recommendations.
+3. **Data Tier**: Integration with MongoDB and MySQL for storage.
+
+![3-Tier Architecture](https://user-images.githubusercontent.com/38120488/38473675-087633c6-3b62-11e8-8901-96afffa2c78f.png)
+
+---
+
+## **💻 API Overview**
+
+### **Core APIs**
+1. **Search Events**
+   - Endpoint: `GET /EventRecommender/search`
+   - Parameters: `user_id`, `lat`, `lon`
+   - Response: List of events near the user's location.
+
+2. **Favorites Management**
+   - Add Favorite: `POST /EventRecommender/history`
+   - Remove Favorite: `DELETE /EventRecommender/history`
+   - Get Favorites: `GET /EventRecommender/history`
+
+3. **Recommendations**
+   - Endpoint: `GET /EventRecommender/recommendation`
+   - Parameters: `user_id`, `lat`, `lon`
+   - Response: Personalized event suggestions.
+
+![API Flow](https://user-images.githubusercontent.com/38120488/38473945-be2e55a6-3b65-11e8-8358-011f267195da.png)
+
+---
+
+## **📊 Database Design**
+
+### **MySQL**
+- **Item Table**: Stores event details.
+- **User Table**: Stores user details.
+- **Category Table**: Links events and categories.
+- **History Table**: Tracks user favorites.
+
+![MySQL Design](https://user-images.githubusercontent.com/38120488/38480030-08dbcca2-3b91-11e8-8c90-184f7e818758.png)
+
+### **MongoDB**
+- **users Collection**: Stores user information and favorites.
+- **items Collection**: Stores event data.
+- **logs Collection**: Tracks user behavior for analysis.
+
+---
+
+## **🔍 Implementation Details**
+
+### **Recommendation Algorithm**
+1. **Content-Based Filtering**:
+   - Analyzes user favorites.
+   - Fetches similar events using **TicketMaster API**.
+
+2. **GeoHash for Location Encoding**:
+   - Converts latitude/longitude to GeoHash for API requests.
+
+3. **Log Analysis**:
+   - Analyzes traffic to identify peak times and user activity trends.
+
+### **Handling CORS**
+- Configured server to handle **Cross-Origin Resource Sharing (CORS)**:
+  ```java
+  response.setContentType("application/json");
+  response.addHeader("Access-Control-Allow-Origin", "*");
+  ```
+
+### **Integration with ELK**
+- **Logstash**: Processes logs in real-time.
+- **Elasticsearch**: Stores logs for analysis.
+- **Kibana**: Provides dashboards for visual insights.
+
+![ELK Flow](https://user-images.githubusercontent.com/38120488/38480242-651a17f2-3b92-11e8-9658-8da3b5a69fb2.png)
+
+---
+
+## **📈 Log Analysis**
+
+### **Behavior Analysis**
+- **Kibana Dashboard**: Visualizes user activity across the system.
+
+![Kibana Dashboard](https://user-images.githubusercontent.com/38120488/38480048-2f351ebc-3b91-11e8-9bc7-d0cf30effe3b.png)
+
+### **Offline Analysis**
+- **Peak Time Identification**:
+  - Use MapReduce jobs in MongoDB.
+  - Tools: [Purify.java](./src/offline/Purify.java) and [FindPeak.java](./src/offline/FindPeak.java).
+
+---
+
+## **🚀 Setup Instructions**
 
 ### **Prerequisites**
-- Java 11 or higher
-- Apache Tomcat (10.x or later)
+- Java 11+
+- Apache Tomcat
 - MongoDB
-- Postman
-- ELK Stack: Elasticsearch, Logstash, Kibana
+- ELK Stack (optional for log analysis)
 
 ### **Steps**
-
-#### **1. Setup MongoDB**
-- Start MongoDB locally or on the server.
-- Initialize collections using `MongoDBConnection.java`.
-
-#### **2. Configure TicketMaster API Key**
-Replace `YOUR_TICKETMASTER_API_KEY` in `TicketMasterAPI.java`:
-```java
-private static final String API_KEY = "YOUR_TICKETMASTER_API_KEY";
-```
-
-#### **3. Deploy on EC2**
-1. **Setup Environment:**
-   ```bash
-   sudo yum update -y
-   sudo yum install -y java-11-amazon-corretto tomcat mongo
-   ```
-2. **Clone Repository and Deploy WAR File:**
+1. **Clone the Repository**
    ```bash
    git clone https://github.com/vedant-abrol/Personalized-Event-Recommendation-Engine.git
-   sudo cp event-recommender.war /var/lib/tomcat/webapps/
+   cd Personalized-Event-Recommendation-Engine
+   ```
+
+2. **Set Up MongoDB**
+   - Use `MongoDBConnection.java` to initialize collections.
+
+3. **Configure TicketMaster API**
+   - Update `TicketMasterAPI.java` with your API key.
+
+4. **Deploy WAR File**
+   ```bash
+   sudo cp event-recommender.war /usr/local/tomcat/webapps/
    sudo systemctl restart tomcat
    ```
-3. **Access Application:**
-   Visit: [https://<your-ec2-ip>:8443/EventRecommender/](https://<your-ec2-ip>:8443/EventRecommender/)
 
-#### **4. Setup ELK Stack**
-
-##### **Elasticsearch**
-```bash
-sudo yum install -y elasticsearch
-sudo systemctl enable elasticsearch
-sudo systemctl start elasticsearch
-```
-Edit `/etc/elasticsearch/elasticsearch.yml`:
-```yml
-network.host: 0.0.0.0
-discovery.type: single-node
-```
-
-##### **Logstash**
-```bash
-sudo yum install -y logstash
-```
-Create `/etc/logstash/conf.d/logstash_pipeline.conf`:
-```plaintext
-input {
-    file {
-        path => "/var/lib/tomcat/logs/catalina.out"
-        start_position => "beginning"
-        sincedb_path => "/dev/null"
-    }
-}
-
-filter {
-    grok {
-        match => { "message" => "%{IP:client_ip} - - \[%{HTTPDATE:timestamp}\] \"%{WORD:method} %{DATA:request} HTTP/%{NUMBER:http_version}\" %{NUMBER:status_code} %{NUMBER:bytes}" }
-    }
-    date {
-        match => ["timestamp", "dd/MMM/yyyy:HH:mm:ss Z"]
-        target => "@timestamp"
-    }
-}
-
-output {
-    elasticsearch {
-        hosts => ["http://localhost:9200"]
-        index => "event_logs"
-    }
-    stdout { codec => rubydebug }
-}
-```
-Start Logstash:
-```bash
-sudo systemctl start logstash
-```
-
-##### **Kibana**
-```bash
-sudo yum install -y kibana
-sudo systemctl enable kibana
-sudo systemctl start kibana
-```
-Access Kibana: `http://<your-ec2-ip>:5601`
+5. **Run Logstash Pipeline**
+   ```bash
+   logstash -f logstash_pipeline.conf
+   ```
 
 ---
 
-## **Screenshots**
+## **📸 Screenshots**
 
 ### **Home Page**
 ![Home Page](screenshots/Screenshot4.png)
 
-### **Dark Mode**
-![Dark Mode](screenshots/Screenshot2.png)
-
-### **Recommend Page**
-![Recommend Page](screenshots/Screenshot3.png)
+### **Recommendations**
+![Recommendations](screenshots/Screenshot3.png)
 
 ### **Favorites**
 ![Favorites](screenshots/Screenshot5.png)
@@ -186,28 +198,15 @@ Access Kibana: `http://<your-ec2-ip>:5601`
 
 ---
 
-## **Contact**
-
-- **Author:** Vedant Abrol
-- **Email:** [va398@njit.edu](mailto:va398@njit.edu)
-- **GitHub:** [vedant-abrol](https://github.com/vedant-abrol)
-
----
-
-## **🚀 Future Improvements**
-
-### **1. AI-Powered Personalized Recommendations**  
-- Use **Machine Learning** models to analyze user preferences and behaviors.  
-- Implement **collaborative filtering** algorithms for better recommendations.
-
-### **2. Real-Time Event Updates**  
-- Fetch real-time data for ticket availability and dynamic pricing.  
-- Integrate **WebSockets** for live updates.
-
-### **3. User Authentication and Notifications**  
-- Add **OAuth** login functionality.  
-- Implement **email notifications** and **push alerts** for users.
+## **🔮 Future Improvements**
+1. **AI-Driven Recommendations**:
+   - Implement ML models for collaborative filtering.
+2. **Enhanced UI/UX**:
+   - Add OAuth for login.
+   - Notifications for saved events.
+3. **Real-Time Updates**:
+   - Use WebSockets for live updates.
 
 ---
 
-### **Thank you for using Personalized Event Recommendation Engine! 🌟**
+### **Thank you for using the Personalized Event Recommendation Engine! 🎟️**
