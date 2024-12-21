@@ -1,6 +1,8 @@
 com/eventrecommender/db/mysql/DBConnectionFactory.class
 com/eventrecommender/entity/Item.class
 com/eventrecommender/rpc/RpcHelper.class
+com/eventrecommender/offline/Purify.class
+com/eventrecommender/offline/FindPeak.class
 com/eventrecommender/db/mongodb/MongoDBConnection.class
 com/eventrecommender/db/mongodb/MongoClient.class
 com/eventrecommender/filter/CORSFilter.class

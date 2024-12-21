@@ -1,4 +1,4 @@
-# **🎟️ Personalized Event Recommendation Engine**
+# **✨ Personalized Event Recommendation Engine**
 
 ---
 
@@ -14,6 +14,8 @@ Users can:
 
 The project uses the **TicketMaster API** for event data and integrates MongoDB for user preferences and event caching.
 
+Live Demo: [Event Recommendation Engine](https://52.204.138.195:8443/EventRecommender/)
+
 ---
 
 ## **Features**
@@ -22,6 +24,7 @@ The project uses the **TicketMaster API** for event data and integrates MongoDB 
 - **Favorites Management:** Save events to your favorites with a heart icon toggle.
 - **Personalized Recommendations:** Suggests events similar to the user's favorite events and ranks them by distance.
 - **Dark Mode:** A toggle for switching between light and dark themes.
+- **Real-Time Log Analysis:** Monitor user behavior and system performance using the **ELK Stack** (Elasticsearch, Logstash, Kibana).
 
 ---
 
@@ -42,6 +45,7 @@ The project uses the **TicketMaster API** for event data and integrates MongoDB 
 - **GeoHash:** For encoding geographical locations.
 - **Postman:** For API testing.
 - **Tomcat Server:** For running the backend.
+- **ELK Stack (Elasticsearch, Logstash, Kibana):** For log analysis and visualization.
 
 ---
 
@@ -57,85 +61,111 @@ The project uses the **TicketMaster API** for event data and integrates MongoDB 
    - **GeoHash**: Converts latitude/longitude to GeoHash for API requests.
 4. **Database**:
    - **MongoDB**: Stores users' favorite items and cached event data.
+5. **Log Monitoring**:
+   - **Logstash**: Processes logs and stores them in Elasticsearch.
+   - **Elasticsearch**: Stores log data for analysis.
+   - **Kibana**: Visualizes log data through dashboards.
 
 ---
 
 ## **Installation Instructions**
 
-Follow these steps to set up and run the project locally:
-
 ### **Prerequisites**
 - Java 11 or higher
 - Apache Tomcat (10.x or later)
-- MongoDB (running locally)
-- Postman (for testing APIs)
+- MongoDB
+- Postman
+- ELK Stack: Elasticsearch, Logstash, Kibana
 
 ### **Steps**
-1. **Clone the Repository**
+
+#### **1. Setup MongoDB**
+- Start MongoDB locally or on the server.
+- Initialize collections using `MongoDBConnection.java`.
+
+#### **2. Configure TicketMaster API Key**
+Replace `YOUR_TICKETMASTER_API_KEY` in `TicketMasterAPI.java`:
+```java
+private static final String API_KEY = "YOUR_TICKETMASTER_API_KEY";
+```
+
+#### **3. Deploy on EC2**
+1. **Setup Environment:**
+   ```bash
+   sudo yum update -y
+   sudo yum install -y java-11-amazon-corretto tomcat mongo
+   ```
+2. **Clone Repository and Deploy WAR File:**
    ```bash
    git clone https://github.com/vedant-abrol/Personalized-Event-Recommendation-Engine.git
-   cd Personalized-Event-Recommendation-Engine
+   sudo cp event-recommender.war /var/lib/tomcat/webapps/
+   sudo systemctl restart tomcat
    ```
+3. **Access Application:**
+   Visit: [https://<your-ec2-ip>:8443/EventRecommender/](https://<your-ec2-ip>:8443/EventRecommender/)
 
-2. **Set Up MongoDB**
-   - Start MongoDB locally.
-   - Run the MongoDB initialization file to create the required collections.
+#### **4. Setup ELK Stack**
 
-   Example Initialization Code (already in `MongoDBConnection.java`):
-   ```java
-   MongoCollection<Document> usersCollection = db.getCollection("users");
-   usersCollection.insertOne(new Document()
-       .append("first_name", "John")
-       .append("last_name", "Smith")
-       .append("password", "1234")
-       .append("user_id", "1111"));
-   ```
+##### **Elasticsearch**
+```bash
+sudo yum install -y elasticsearch
+sudo systemctl enable elasticsearch
+sudo systemctl start elasticsearch
+```
+Edit `/etc/elasticsearch/elasticsearch.yml`:
+```yml
+network.host: 0.0.0.0
+discovery.type: single-node
+```
 
-3. **Set Up TicketMaster API Key**
-   - Replace `YOUR_TICKETMASTER_API_KEY` in `TicketMasterAPI.java`:
-     ```java
-     private static final String API_KEY = "YOUR_TICKETMASTER_API_KEY";
-     ```
+##### **Logstash**
+```bash
+sudo yum install -y logstash
+```
+Create `/etc/logstash/conf.d/logstash_pipeline.conf`:
+```plaintext
+input {
+    file {
+        path => "/var/lib/tomcat/logs/catalina.out"
+        start_position => "beginning"
+        sincedb_path => "/dev/null"
+    }
+}
 
-4. **Configure Tomcat**
-   - Deploy the WAR file (`event-recommender.war`) to Tomcat's `webapps` directory.
-   - Start Tomcat and ensure it runs on `http://localhost:8080/`.
+filter {
+    grok {
+        match => { "message" => "%{IP:client_ip} - - \[%{HTTPDATE:timestamp}\] \"%{WORD:method} %{DATA:request} HTTP/%{NUMBER:http_version}\" %{NUMBER:status_code} %{NUMBER:bytes}" }
+    }
+    date {
+        match => ["timestamp", "dd/MMM/yyyy:HH:mm:ss Z"]
+        target => "@timestamp"
+    }
+}
 
-5. **Run the Application**
-   - Open your browser and visit:
-     ```
-     http://localhost:8080/EventRecommender/index.html
-     ```
+output {
+    elasticsearch {
+        hosts => ["http://localhost:9200"]
+        index => "event_logs"
+    }
+    stdout { codec => rubydebug }
+}
+```
+Start Logstash:
+```bash
+sudo systemctl start logstash
+```
 
-6. **Verify Endpoints Using Postman**
-   - **Nearby Events:** `GET /EventRecommender/search`
-   - **Favorites:** `GET/POST/DELETE /EventRecommender/history`
-   - **Recommendations:** `GET /EventRecommender/recommendation`
-
----
-
-## **Codebase Overview**
-
-### **Frontend**
-1. **HTML**: `index.html` - UI layout and structure.
-2. **CSS**: `static/styles/main.css` - Styling and dark mode theme.
-3. **JavaScript**: `static/scripts/main.js` - Core functionality:
-   - Fetch and display events.
-   - Manage favorites.
-   - Dark mode toggle.
-
-### **Backend**
-1. **SearchItem.java**: Fetches nearby events.
-2. **RecommendItem.java**: Provides event recommendations based on favorites.
-3. **ItemHistory.java**: Manages favorite events.
-4. **TicketMasterAPI.java**: Integrates with the TicketMaster API.
-5. **GeoRecommendation.java**: Implements the recommendation logic.
-6. **MongoDBConnection.java**: Manages MongoDB operations.
+##### **Kibana**
+```bash
+sudo yum install -y kibana
+sudo systemctl enable kibana
+sudo systemctl start kibana
+```
+Access Kibana: `http://<your-ec2-ip>:5601`
 
 ---
 
 ## **Screenshots**
-
 
 ### **Home Page**
 ![Home Page](screenshots/Screenshot4.png)
@@ -156,65 +186,8 @@ Follow these steps to set up and run the project locally:
 
 ---
 
-## **APIs Documentation**
-
-### **Search Nearby Events**
-- Endpoint: `GET /EventRecommender/search`
-- Parameters:
-  - `user_id`: User ID (e.g., `1111`)
-  - `lat`: Latitude (e.g., `37.38`)
-  - `lon`: Longitude (e.g., `-122.08`)
-- Response:
-  json
-  [
-    {
-      "item_id": "123",
-      "name": "Event Name",
-      "address": "Event Address",
-      "date": "2024-12-31",
-      "categories": ["Sports"],
-      "image_url": "https://example.com/event.jpg",
-      "url": "https://example.com/event-page"
-    }
-  ]
-
-### **Get Recommendations**
-- Endpoint: `GET /EventRecommender/recommendation`
-- Parameters:
-  - `user_id`: User ID
-  - `lat`: Latitude
-  - `lon`: Longitude
-- Response: Similar to "Nearby Events."
-
-### **Manage Favorites**
-- **Add to Favorites**: `POST /EventRecommender/history`
-- **Remove from Favorites**: `DELETE /EventRecommender/history`
-- **Get Favorites**: `GET /EventRecommender/history`
-
----
-
-## **Contributing**
-
-1. Fork the repository.
-2. Create a feature branch.
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-3. Commit your changes.
-   ```bash
-   git commit -m "Add your message"
-   ```
-4. Push to the branch.
-   ```bash
-   git push origin feature/your-feature-name
-   ```
-5. Open a pull request.
-
----
-
 ## **Contact**
 
-For any queries or issues:
 - **Author:** Vedant Abrol
 - **Email:** [va398@njit.edu](mailto:va398@njit.edu)
 - **GitHub:** [vedant-abrol](https://github.com/vedant-abrol)
@@ -224,29 +197,17 @@ For any queries or issues:
 ## **🚀 Future Improvements**
 
 ### **1. AI-Powered Personalized Recommendations**  
-- Use **Machine Learning** models to analyze user preferences, event history, and behaviors.  
-- Implement **collaborative filtering** or **content-based filtering** algorithms for better event recommendations.  
-- Integrate **sentiment analysis** to rank trending events based on positive user reviews.
+- Use **Machine Learning** models to analyze user preferences and behaviors.  
+- Implement **collaborative filtering** algorithms for better recommendations.
 
 ### **2. Real-Time Event Updates**  
-- Fetch real-time data for **ticket availability**, **event cancellations**, and **dynamic pricing** using live APIs.  
-- Integrate **WebSockets** to push live updates to the user without page refreshes.
+- Fetch real-time data for ticket availability and dynamic pricing.  
+- Integrate **WebSockets** for live updates.
 
-### **3. User Authentication and Social Login**  
-- Add **OAuth** login functionality for Google, Facebook, or GitHub accounts.  
-- Allow users to save preferences, search history, and manage their favorite events securely.
-
-### **4. Notifications and Alerts**  
-- Implement **email notifications** and **push alerts** to notify users about new events, price drops, or upcoming saved events.  
-- Allow users to seamlessly add events to their **Google Calendar** or iCal.
-
-### **5. Interactive and Responsive UI/UX**  
-- Add support for **Progressive Web Apps (PWA)** to make the application installable and work offline.  
-- Enhance the dark mode with customizable themes and better accessibility.  
-- Allow advanced search filters like **date, price range, event type**, and **distance radius**.
+### **3. User Authentication and Notifications**  
+- Add **OAuth** login functionality.  
+- Implement **email notifications** and **push alerts** for users.
 
 ---
 
 ### **Thank you for using Personalized Event Recommendation Engine! 🌟**
-
---- 
