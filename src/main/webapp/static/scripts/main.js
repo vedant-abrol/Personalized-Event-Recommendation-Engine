@@ -1,188 +1,237 @@
 (function () {
-    // Global variables to store user ID and default coordinates
-    var user_id = '1111';
-    var lng = -122.08;
-    var lat = 37.38;
+    const user_id = '1111';
+    let lng = -122.08;
+    let lat = 37.38;
 
-    // Initialize the application
+    const API_BASE = window.location.origin.includes('localhost')
+        ? 'http://localhost:8080/EventRecommender'
+        : 'https://35.173.220.122:8443/EventRecommender';
+
+    const itemList = document.getElementById('item-list');
+    const statusBanner = document.getElementById('status-banner');
+    const darkModeToggle = document.getElementById('dark-mode-toggle');
+
     function init() {
-        // Event listeners for navigation buttons
         document.getElementById('nearby-btn').addEventListener('click', () => {
-            setActiveButton('nearby-btn'); // Highlight the active button
-            loadNearbyItems(); // Load nearby events
+            setActiveButton('nearby-btn');
+            loadNearbyItems();
         });
+
         document.getElementById('fav-btn').addEventListener('click', () => {
-            setActiveButton('fav-btn'); // Highlight the active button
-            loadFavoriteItems(); // Load favorite items
+            setActiveButton('fav-btn');
+            loadFavoriteItems();
         });
+
         document.getElementById('recommend-btn').addEventListener('click', () => {
-            setActiveButton('recommend-btn'); // Highlight the active button
-            loadRecommendedItems(); // Load recommended events
+            setActiveButton('recommend-btn');
+            loadRecommendedItems();
         });
 
-        // Dark mode toggle initialization
-        const darkModeToggle = document.getElementById('dark-mode-toggle');
-        const body = document.body;
-
-        // Check and apply saved dark mode preference
         if (localStorage.getItem('dark-mode') === 'enabled') {
             enableDarkMode();
         }
 
-        // Add event listener for dark mode toggle
         darkModeToggle.addEventListener('click', () => {
-            if (body.classList.contains('dark-mode')) {
+            if (document.body.classList.contains('dark-mode')) {
                 disableDarkMode();
             } else {
                 enableDarkMode();
             }
         });
 
-        // Initialize geolocation to get user's current location
         initGeoLocation();
     }
 
-    // Enable dark mode
     function enableDarkMode() {
         document.body.classList.add('dark-mode');
-        localStorage.setItem('dark-mode', 'enabled'); // Save preference
-        document.getElementById('dark-mode-toggle').innerHTML = '<i class="fa fa-sun-o"></i>';
+        localStorage.setItem('dark-mode', 'enabled');
+        darkModeToggle.innerHTML = '<i class="fa fa-sun-o"></i>';
     }
 
-    // Disable dark mode
     function disableDarkMode() {
         document.body.classList.remove('dark-mode');
-        localStorage.setItem('dark-mode', 'disabled'); // Save preference
-        document.getElementById('dark-mode-toggle').innerHTML = '<i class="fa fa-moon-o"></i>';
+        localStorage.setItem('dark-mode', 'disabled');
+        darkModeToggle.innerHTML = '<i class="fa fa-moon-o"></i>';
     }
 
-    // Initialize geolocation to fetch user's current position
     function initGeoLocation() {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(onPositionUpdated, onLoadPositionFailed);
         } else {
-            onLoadPositionFailed(); // Use default location if geolocation fails
+            onLoadPositionFailed();
         }
     }
 
-    // Update coordinates on successful geolocation
     function onPositionUpdated(position) {
         lat = position.coords.latitude;
         lng = position.coords.longitude;
-        loadNearbyItems(); // Load nearby events based on current location
-    }
-
-    // Handle geolocation failure
-    function onLoadPositionFailed() {
-        alert('Location retrieval failed! Using default location.');
         loadNearbyItems();
     }
 
-    // Load nearby events
+    function onLoadPositionFailed() {
+        showStatus('Using default location because we could not read your GPS.', 'warning');
+        loadNearbyItems();
+    }
+
     function loadNearbyItems() {
         loadItems(
-            'https://35.173.220.122:8443/EventRecommender/search',
+            `${API_BASE}/search`,
             `user_id=${user_id}&lat=${lat}&lon=${lng}`,
             'Nearby items not found.'
         );
     }
 
-    // Load favorite items
     function loadFavoriteItems() {
         loadItems(
-            'https://35.173.220.122:8443/EventRecommender/history',
+            `${API_BASE}/history`,
             `user_id=${user_id}`,
             'No favorite items found.',
-            true // Indicate favorite view
+            true
         );
     }
 
-    // Load recommended events
     function loadRecommendedItems() {
         loadItems(
-            'https://35.173.220.122:8443/EventRecommender/recommendation',
+            `${API_BASE}/recommendation`,
             `user_id=${user_id}&lat=${lat}&lon=${lng}`,
             'No recommended items found.'
         );
     }
 
-    // Generic function to load items from a specific URL
     function loadItems(url, params, errorMsg, isFavoriteView = false) {
+        setLoading(true);
+        clearStatus();
+
         fetch(`${url}?${params}`)
-            .then(response => response.json())
-            .then(items => {
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error('Unexpected response');
+                }
+                return response.json();
+            })
+            .then((items) => {
                 if (!items || items.length === 0) {
-                    showErrorMessage(errorMsg); // Show error if no items found
+                    showEmptyState(errorMsg);
                 } else {
-                    listItems(items, isFavoriteView); // Display items
+                    listItems(items, isFavoriteView);
                 }
             })
-            .catch(() => showErrorMessage('Unable to fetch items.'));
+            .catch(() => {
+                showEmptyState('Unable to fetch items. Please try again.');
+                showStatus('The service is unreachable right now. We will keep trying.', 'error');
+            })
+            .finally(() => setLoading(false));
     }
 
-    // Display the list of items in the UI
     function listItems(items, isFavoriteView = false) {
-        const itemList = document.getElementById('item-list');
-        itemList.innerHTML = ''; // Clear previous items
-        items.forEach(item => {
-            const isFavorite = isFavoriteView || item.favorite === true; // Ensure correct favorite status
+        itemList.innerHTML = '';
+        items.forEach((item) => {
+            const isFavorite = isFavoriteView || item.favorite === true;
             const li = document.createElement('li');
             li.className = 'item';
             li.innerHTML = `
-                <img src="${item.image_url || 'https://via.placeholder.com/300'}" alt="Event Image">
+                <div class="item-header">
+                    <div class="badge">${item.categories?.[0] || 'Event'}</div>
+                    <button class="pill-btn">${item.date || 'Date TBD'}</button>
+                </div>
+                <img src="${item.image_url || 'https://via.placeholder.com/640x360?text=Event'}" alt="Event Image">
                 <a href="${item.url || '#'}" target="_blank" class="item-name">${item.name || 'No Title'}</a>
-                <p class="item-category">Category: ${item.categories?.join(', ') || 'N/A'}</p>
-                <p class="item-priceRange">Price: ${item.priceRange || 'N/A'}</p>
-                <p class="item-address">${item.address || 'No Address'}</p>
-                <p class="item-startDate">${item.date || 'No Date'}</p>
-                <div class="fav-link" data-item-id="${item.item_id}" data-favorite="${isFavorite}">
-                    <i class="fa ${isFavorite ? 'fa-heart' : 'fa-heart-o'}"></i>
+                <p class="item-address"><i class="fa fa-map-marker"></i> ${item.address || 'No Address'}</p>
+                <p class="item-priceRange"><i class="fa fa-ticket"></i> ${item.priceRange || 'Pricing info coming soon'}</p>
+                <div class="item-footer">
+                    <span class="tag">${(item.categories && item.categories.slice(0, 2).join(' • ')) || 'General'}</span>
+                    <div class="fav-link" data-item-id="${item.item_id}" data-favorite="${isFavorite}">
+                        <i class="fa ${isFavorite ? 'fa-heart' : 'fa-heart-o'}"></i>
+                    </div>
                 </div>
             `;
-            // Add favorite toggle functionality
+
             li.querySelector('.fav-link').addEventListener('click', toggleFavorite);
             itemList.appendChild(li);
         });
     }
 
-    // Toggle favorite status for an item
     function toggleFavorite(event) {
         const favLink = event.currentTarget;
         const item_id = favLink.dataset.itemId;
         const isFavorite = favLink.dataset.favorite === 'true';
 
         const method = isFavorite ? 'DELETE' : 'POST';
-        const url = 'https://35.173.220.122:8443/EventRecommender/history';
+        const url = `${API_BASE}/history`;
         const payload = JSON.stringify({ user_id: user_id, favorite: [item_id] });
+
+        favLink.classList.add('busy');
 
         fetch(url, {
             method: method,
             headers: { 'Content-Type': 'application/json' },
             body: payload,
         })
-            .then(response => response.json())
-            .then(result => {
+            .then((response) => response.json())
+            .then((result) => {
                 if (result.result === 'SUCCESS') {
                     favLink.dataset.favorite = isFavorite ? 'false' : 'true';
                     favLink.querySelector('i').className = isFavorite ? 'fa fa-heart-o' : 'fa fa-heart';
+                    showStatus(isFavorite ? 'Removed from favorites' : 'Saved to favorites', 'success');
                 } else {
-                    alert('Failed to update favorite.');
+                    throw new Error('failed');
                 }
             })
-            .catch(() => alert('Error updating favorite.'));
+            .catch(() => showStatus('Failed to update favorite', 'error'))
+            .finally(() => favLink.classList.remove('busy'));
     }
 
-    // Set the active navigation button
     function setActiveButton(buttonId) {
         const buttons = document.querySelectorAll('.nav-btn');
-        buttons.forEach(btn => btn.classList.remove('active'));
+        buttons.forEach((btn) => btn.classList.remove('active'));
         document.getElementById(buttonId).classList.add('active');
     }
 
-    // Display an error message in the UI
-    function showErrorMessage(msg) {
-        document.getElementById('item-list').innerHTML = `<p>${msg}</p>`;
+    function showEmptyState(msg) {
+        itemList.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon"><i class="fa fa-compass"></i></div>
+                <p>${msg}</p>
+                <small>Try switching tabs or adjusting your location settings.</small>
+            </div>
+        `;
     }
 
-    init(); // Initialize the app on load
+    function showStatus(message, type = 'info') {
+        if (!statusBanner) return;
+        statusBanner.textContent = message;
+        statusBanner.className = `status-banner ${type}`;
+        statusBanner.removeAttribute('hidden');
+    }
+
+    function clearStatus() {
+        if (!statusBanner) return;
+        statusBanner.textContent = '';
+        statusBanner.className = 'status-banner';
+        statusBanner.setAttribute('hidden', 'hidden');
+    }
+
+    function setLoading(isLoading) {
+        itemList.classList.toggle('loading', isLoading);
+        if (isLoading) {
+            renderSkeletons();
+        }
+    }
+
+    function renderSkeletons() {
+        itemList.innerHTML = '';
+        for (let i = 0; i < 6; i++) {
+            const li = document.createElement('li');
+            li.className = 'item skeleton';
+            li.innerHTML = `
+                <div class="skeleton-thumb"></div>
+                <div class="skeleton-line short"></div>
+                <div class="skeleton-line"></div>
+                <div class="skeleton-line"></div>
+            `;
+            itemList.appendChild(li);
+        }
+    }
+
+    init();
 })();

@@ -178,6 +178,18 @@ Many events people like are either hard to discover or irrelevant to their prefe
    logstash -f logstash_pipeline.conf
    ```
 
+### **Preview the UI for free**
+- **Local quick start (no paid services):**
+  - Build the project and launch an embedded server with Maven:
+    ```bash
+    mvn clean package -DskipTests
+    mvn tomcat7:run
+    ```
+  - Open [http://localhost:8080/EventRecommender/](http://localhost:8080/EventRecommender/) in your browser.
+- **Deploy to free hosting:**
+  - Use free tiers like **Render** (Web Service) or **Railway** to host the WAR. Point them at `mvn tomcat7:run` as the start command and expose port `8080`.
+  - For static previews of the UI only, push `src/main/webapp` to a free static host (Netlify/Vercel). Update `API_BASE` in `static/scripts/main.js` if the backend runs elsewhere.
+
 ---
 
 ## **📸 Screenshots**
