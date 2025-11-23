@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -26,7 +28,8 @@ import com.eventrecommender.entity.Item;
  */
 @WebServlet("/search")
 public class SearchItem extends HttpServlet {
-	private static final long serialVersionUID = 1L;
+        private static final long serialVersionUID = 1L;
+        private static final Logger LOGGER = Logger.getLogger(SearchItem.class.getName());
 
 	/**
 	 * Default constructor.
@@ -45,50 +48,48 @@ public class SearchItem extends HttpServlet {
 	 * @throws ServletException If an exception occurs during request processing.
 	 * @throws IOException      If an I/O error occurs during request processing.
 	 */
-	protected void doGet(HttpServletRequest request, HttpServletResponse response)
-			throws ServletException, IOException {
-		// Step 1: Extract parameters from the HTTP request
-		String userId = request.getParameter("user_id"); // User ID
-		double lat = Double.parseDouble(request.getParameter("lat")); // Latitude
-		double lon = Double.parseDouble(request.getParameter("lon")); // Longitude
+        protected void doGet(HttpServletRequest request, HttpServletResponse response)
+                        throws ServletException, IOException {
+                String userId = request.getParameter("user_id");
 
-		// Step 2: Establish database connection
-		DBConnection conn = DBConnectionFactory.getDBConnection();
-		if (conn == null) {
-			// Handle case where database connection is not configured correctly
-			throw new ServletException("DBConnection is null. Check database connection configuration.");
-		}
+                Double lat = parseCoordinate(request.getParameter("lat"));
+                Double lon = parseCoordinate(request.getParameter("lon"));
 
-		// Step 3: Search for nearby items using the provided latitude and longitude
-		List<Item> items = conn.searchItems(lat, lon);
+                if (lat == null || lon == null) {
+                        RpcHelper.writeJsonError(response, HttpServletResponse.SC_BAD_REQUEST,
+                                        "Invalid latitude or longitude supplied.");
+                        return;
+                }
 
-		// Step 4: Get the list of favorite item IDs for the user
-		Set<String> favorite = conn.getFavoriteItemIds(userId);
+                DBConnection conn = DBConnectionFactory.getDBConnection();
+                if (conn == null) {
+                        LOGGER.severe("DBConnection is null. Check database connection configuration.");
+                        RpcHelper.writeJsonError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                                        "Service unavailable: database connection not configured.");
+                        return;
+                }
 
-		// Step 5: Prepare the response JSON array
-		List<JSONObject> list = new ArrayList<>();
-		try {
-			for (Item item : items) {
-				// Convert the `Item` object to a JSON object
-				JSONObject obj = item.toJSONObject();
+                try {
+                        List<Item> items = conn.searchItems(lat, lon);
+                        Set<String> favorite = conn.getFavoriteItemIds(userId);
 
-				// Check if the item is in the user's favorites and add the "favorite" flag
-				if (favorite != null) {
-					obj.put("favorite", favorite.contains(item.getItemId()));
-				}
+                        List<JSONObject> list = new ArrayList<>();
+                        for (Item item : items) {
+                                JSONObject obj = item.toJSONObject();
+                                if (favorite != null) {
+                                        obj.put("favorite", favorite.contains(item.getItemId()));
+                                }
+                                list.add(obj);
+                        }
 
-				// Add the JSON object to the list
-				list.add(obj);
-			}
-		} catch (Exception e) {
-			// Handle any exceptions during JSON processing
-			e.printStackTrace();
-		}
-
-		// Step 6: Write the response as a JSON array
-		JSONArray array = new JSONArray(list);
-		RpcHelper.writeJsonArray(response, array);
-	}
+                        JSONArray array = new JSONArray(list);
+                        RpcHelper.writeJsonArray(response, array);
+                } catch (Exception e) {
+                        LOGGER.log(Level.SEVERE, "Error while searching items", e);
+                        RpcHelper.writeJsonError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                                        "Unable to process your request right now.");
+                }
+        }
 
 	/**
 	 * Handles HTTP POST requests by delegating to `doGet`.
@@ -100,8 +101,17 @@ public class SearchItem extends HttpServlet {
 	 * @throws ServletException If an exception occurs during request processing.
 	 * @throws IOException      If an I/O error occurs during request processing.
 	 */
-	protected void doPost(HttpServletRequest request, HttpServletResponse response)
-			throws ServletException, IOException {
-		doGet(request, response); // Reuse the logic in `doGet`
-	}
+        protected void doPost(HttpServletRequest request, HttpServletResponse response)
+                        throws ServletException, IOException {
+                doGet(request, response); // Reuse the logic in `doGet`
+        }
+
+        private Double parseCoordinate(String coordinate) {
+                try {
+                        return Double.parseDouble(coordinate);
+                } catch (Exception e) {
+                        LOGGER.log(Level.WARNING, "Failed to parse coordinate: {0}", coordinate);
+                        return null;
+                }
+        }
 }

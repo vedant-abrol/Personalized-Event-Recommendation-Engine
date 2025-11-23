@@ -3,6 +3,7 @@ package com.eventrecommender.rpc;
 import java.io.BufferedReader;
 import java.io.PrintWriter;
 import java.util.List;
+import java.util.Objects;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -58,6 +59,22 @@ public class RpcHelper {
         } catch (Exception e) {
             e.printStackTrace(); // Log any exception
         }
+    }
+
+    /**
+     * Writes an error payload with a status code and message.
+     *
+     * @param response   the HTTP response to write to
+     * @param statusCode HTTP status to send
+     * @param message    human readable error message
+     */
+    public static void writeJsonError(HttpServletResponse response, int statusCode, String message) {
+        Objects.requireNonNull(response, "response must not be null");
+        JSONObject error = new JSONObject();
+        error.put("status", statusCode);
+        error.put("error", message);
+        response.setStatus(statusCode);
+        writeJsonObject(response, error);
     }
 
     /**
