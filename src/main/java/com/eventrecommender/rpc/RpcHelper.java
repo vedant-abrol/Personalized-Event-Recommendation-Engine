@@ -5,13 +5,14 @@ import java.io.PrintWriter;
 import java.util.List;
 import java.util.Objects;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.eventrecommender.entity.Item;
+
+import javax.servlet.http.HttpServletRequest; // Added import for JSONException
+import javax.servlet.http.HttpServletResponse;
 
 /**
  * Utility class to handle JSON parsing and writing for HTTP requests and responses.
@@ -71,8 +72,12 @@ public class RpcHelper {
     public static void writeJsonError(HttpServletResponse response, int statusCode, String message) {
         Objects.requireNonNull(response, "response must not be null");
         JSONObject error = new JSONObject();
-        error.put("status", statusCode);
-        error.put("error", message);
+        try {
+            error.put("status", statusCode);
+            error.put("error", message);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
         response.setStatus(statusCode);
         writeJsonObject(response, error);
     }
