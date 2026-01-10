@@ -3,9 +3,8 @@
     let lng = -122.08;
     let lat = 37.38;
 
-    const API_BASE = window.location.origin.includes('localhost')
-        ? 'http://localhost:8080'
-        : 'https://35.173.220.122:8443/EventRecommender';
+    // API_BASE uses same origin - works for localhost and production (Koyeb, etc.)
+    const API_BASE = window.location.origin;
 
     const itemList = document.getElementById('item-list');
     const statusBanner = document.getElementById('status-banner');
