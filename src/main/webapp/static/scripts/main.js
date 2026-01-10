@@ -4,59 +4,94 @@
     let lat = 37.38;
 
     const API_BASE = window.location.origin.includes('localhost')
-        ? 'http://localhost:8080/EventRecommender'
+        ? 'http://localhost:8080'
         : 'https://35.173.220.122:8443/EventRecommender';
 
     const itemList = document.getElementById('item-list');
     const statusBanner = document.getElementById('status-banner');
     const darkModeToggle = document.getElementById('dark-mode-toggle');
+    const categoryFilter = document.getElementById('category-filter');
 
     function init() {
+        // Set up button listeners
         document.getElementById('nearby-btn').addEventListener('click', () => {
             setActiveButton('nearby-btn');
+            showCategoryFilter(true);
             loadNearbyItems();
         });
 
         document.getElementById('fav-btn').addEventListener('click', () => {
             setActiveButton('fav-btn');
+            showCategoryFilter(false);
             loadFavoriteItems();
         });
 
         document.getElementById('recommend-btn').addEventListener('click', () => {
             setActiveButton('recommend-btn');
+            showCategoryFilter(false);
             loadRecommendedItems();
         });
 
-        if (localStorage.getItem('dark-mode') === 'enabled') {
-            enableDarkMode();
+        // Category filter change listener
+        if (categoryFilter) {
+            categoryFilter.addEventListener('change', () => {
+                const activeBtn = document.querySelector('.nav-btn.active');
+                if (activeBtn && activeBtn.id === 'nearby-btn') {
+                    loadNearbyItems();
+                }
+            });
         }
 
-        darkModeToggle.addEventListener('click', () => {
-            if (document.body.classList.contains('dark-mode')) {
-                disableDarkMode();
-            } else {
-                enableDarkMode();
-            }
-        });
+        // Initialize dark mode from localStorage
+        if (localStorage.getItem('dark-mode') === 'enabled') {
+            enableDarkMode();
+        } else {
+            // Make sure icon is correct on initial load
+            updateDarkModeIcon();
+        }
 
+        // Dark mode toggle listener
+        if (darkModeToggle) {
+            darkModeToggle.addEventListener('click', () => {
+                if (document.body.classList.contains('dark-mode')) {
+                    disableDarkMode();
+                } else {
+                    enableDarkMode();
+                }
+            });
+        }
+
+        // Start loading immediately with skeleton, then get geolocation
+        setLoading(true);
         initGeoLocation();
     }
 
     function enableDarkMode() {
         document.body.classList.add('dark-mode');
         localStorage.setItem('dark-mode', 'enabled');
-        darkModeToggle.innerHTML = '<i class="fa fa-sun-o"></i>';
+        updateDarkModeIcon();
     }
 
     function disableDarkMode() {
         document.body.classList.remove('dark-mode');
         localStorage.setItem('dark-mode', 'disabled');
-        darkModeToggle.innerHTML = '<i class="fa fa-moon-o"></i>';
+        updateDarkModeIcon();
+    }
+
+    function updateDarkModeIcon() {
+        if (!darkModeToggle) return;
+        const isDark = document.body.classList.contains('dark-mode');
+        darkModeToggle.innerHTML = isDark 
+            ? '<i class="fa fa-sun-o"></i>' 
+            : '<i class="fa fa-moon-o"></i>';
     }
 
     function initGeoLocation() {
         if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(onPositionUpdated, onLoadPositionFailed);
+            navigator.geolocation.getCurrentPosition(onPositionUpdated, onLoadPositionFailed, {
+                timeout: 10000,
+                enableHighAccuracy: false
+            });
         } else {
             onLoadPositionFailed();
         }
@@ -69,23 +104,31 @@
     }
 
     function onLoadPositionFailed() {
-        showStatus('Using default location because we could not read your GPS.', 'warning');
+        showStatus('Using default location (San Jose, CA)', 'warning');
         loadNearbyItems();
     }
 
     function loadNearbyItems() {
+        const category = categoryFilter ? categoryFilter.value : 'All';
         loadItems(
             `${API_BASE}/search`,
-            `user_id=${user_id}&lat=${lat}&lon=${lng}`,
-            'Nearby items not found.'
+            `user_id=${user_id}&lat=${lat}&lon=${lng}&category=${encodeURIComponent(category)}`,
+            'No events found nearby.' + (category !== 'All' ? ` Try selecting a different category.` : '')
         );
+    }
+
+    function showCategoryFilter(show) {
+        const filterBar = document.querySelector('.filter-bar');
+        if (filterBar) {
+            filterBar.classList.toggle('hidden', !show);
+        }
     }
 
     function loadFavoriteItems() {
         loadItems(
             `${API_BASE}/history`,
             `user_id=${user_id}`,
-            'No favorite items found.',
+            'No favorites yet. Start exploring and save events you like!',
             true
         );
     }
@@ -94,7 +137,7 @@
         loadItems(
             `${API_BASE}/recommendation`,
             `user_id=${user_id}&lat=${lat}&lon=${lng}`,
-            'No recommended items found.'
+            'No recommendations yet. Save some favorites to get personalized suggestions!'
         );
     }
 
@@ -117,30 +160,35 @@
                 }
             })
             .catch(() => {
-                showEmptyState('Unable to fetch items. Please try again.');
-                showStatus('The service is unreachable right now. We will keep trying.', 'error');
+                showEmptyState('Unable to fetch events. Please try again.');
+                showStatus('Connection error. Please check your internet and try again.', 'error');
             })
             .finally(() => setLoading(false));
     }
 
     function listItems(items, isFavoriteView = false) {
         itemList.innerHTML = '';
-        items.forEach((item) => {
+        items.forEach((item, index) => {
             const isFavorite = isFavoriteView || item.favorite === true;
             const li = document.createElement('li');
             li.className = 'item';
+            li.style.animationDelay = `${index * 0.05}s`;
             li.innerHTML = `
                 <div class="item-header">
                     <div class="badge">${item.categories?.[0] || 'Event'}</div>
                     <button class="pill-btn">${item.date || 'Date TBD'}</button>
                 </div>
-                <img src="${item.image_url || 'https://via.placeholder.com/640x360?text=Event'}" alt="Event Image">
-                <a href="${item.url || '#'}" target="_blank" class="item-name">${item.name || 'No Title'}</a>
-                <p class="item-address"><i class="fa fa-map-marker"></i> ${item.address || 'No Address'}</p>
-                <p class="item-priceRange"><i class="fa fa-ticket"></i> ${item.priceRange || 'Pricing info coming soon'}</p>
+                <img src="${item.image_url || 'https://via.placeholder.com/640x360?text=Event'}" alt="${item.name || 'Event'}" loading="lazy">
+                <div class="item-body">
+                    <a href="${item.url || '#'}" target="_blank" class="item-name">${item.name || 'No Title'}</a>
+                    <div class="item-meta">
+                        <p class="item-address"><i class="fa fa-map-marker"></i> ${item.address || 'Location TBA'}</p>
+                        <p class="item-priceRange"><i class="fa fa-ticket"></i> ${item.priceRange || 'See ticket options'}</p>
+                    </div>
+                </div>
                 <div class="item-footer">
                     <span class="tag">${(item.categories && item.categories.slice(0, 2).join(' • ')) || 'General'}</span>
-                    <div class="fav-link" data-item-id="${item.item_id}" data-favorite="${isFavorite}">
+                    <div class="fav-link" data-item-id="${item.item_id}" data-favorite="${isFavorite}" title="${isFavorite ? 'Remove from favorites' : 'Add to favorites'}">
                         <i class="fa ${isFavorite ? 'fa-heart' : 'fa-heart-o'}"></i>
                     </div>
                 </div>
@@ -172,12 +220,20 @@
                 if (result.result === 'SUCCESS') {
                     favLink.dataset.favorite = isFavorite ? 'false' : 'true';
                     favLink.querySelector('i').className = isFavorite ? 'fa fa-heart-o' : 'fa fa-heart';
-                    showStatus(isFavorite ? 'Removed from favorites' : 'Saved to favorites', 'success');
+                    favLink.title = isFavorite ? 'Add to favorites' : 'Remove from favorites';
+                    showStatus(isFavorite ? 'Removed from favorites' : 'Added to favorites!', 'success');
+                    
+                    // Auto-hide success message after 3 seconds
+                    setTimeout(() => {
+                        if (statusBanner.classList.contains('success')) {
+                            clearStatus();
+                        }
+                    }, 3000);
                 } else {
                     throw new Error('failed');
                 }
             })
-            .catch(() => showStatus('Failed to update favorite', 'error'))
+            .catch(() => showStatus('Failed to update favorites. Please try again.', 'error'))
             .finally(() => favLink.classList.remove('busy'));
     }
 
@@ -192,7 +248,7 @@
             <div class="empty-state">
                 <div class="empty-icon"><i class="fa fa-compass"></i></div>
                 <p>${msg}</p>
-                <small>Try switching tabs or adjusting your location settings.</small>
+                <small>Try switching tabs or checking back later for new events.</small>
             </div>
         `;
     }
@@ -225,13 +281,16 @@
             li.className = 'item skeleton';
             li.innerHTML = `
                 <div class="skeleton-thumb"></div>
-                <div class="skeleton-line short"></div>
-                <div class="skeleton-line"></div>
-                <div class="skeleton-line"></div>
+                <div class="skeleton-body">
+                    <div class="skeleton-line short"></div>
+                    <div class="skeleton-line"></div>
+                    <div class="skeleton-line medium"></div>
+                </div>
             `;
             itemList.appendChild(li);
         }
     }
 
+    // Initialize the app
     init();
 })();

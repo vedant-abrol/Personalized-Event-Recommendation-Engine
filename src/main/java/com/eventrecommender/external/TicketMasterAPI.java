@@ -43,6 +43,21 @@ public class TicketMasterAPI implements ExternalAPI {
             int responseCode = connection.getResponseCode();
             System.out.println("Response Code : " + responseCode);
 
+            // Check if the response is successful
+            if (responseCode != HttpURLConnection.HTTP_OK) {
+                // Read error stream if available
+                BufferedReader errorReader = new BufferedReader(
+                    new InputStreamReader(connection.getErrorStream()));
+                StringBuilder errorResponse = new StringBuilder();
+                String errorLine;
+                while ((errorLine = errorReader.readLine()) != null) {
+                    errorResponse.append(errorLine);
+                }
+                errorReader.close();
+                System.err.println("API Error Response: " + errorResponse.toString());
+                return new ArrayList<>(); // Return empty list instead of null
+            }
+
             // Read the API response
             BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
             String inputLine;
@@ -54,27 +69,59 @@ public class TicketMasterAPI implements ExternalAPI {
 
             // Parse the JSON response to extract events
             JSONObject responseJson = new JSONObject(response.toString());
-            JSONObject embedded = (JSONObject) responseJson.get("_embedded");
-            JSONArray events = (JSONArray) embedded.get("events");
+            
+            // Check if _embedded field exists
+            if (!responseJson.has("_embedded") || responseJson.isNull("_embedded")) {
+                System.out.println("No _embedded field in response. No events found.");
+                return new ArrayList<>();
+            }
+            
+            JSONObject embedded = responseJson.getJSONObject("_embedded");
+            
+            // Check if events array exists
+            if (!embedded.has("events") || embedded.isNull("events")) {
+                System.out.println("No events field in response. No events found.");
+                return new ArrayList<>();
+            }
+            
+            JSONArray events = embedded.getJSONArray("events");
+            
+            // Handle empty events array
+            if (events.length() == 0) {
+                System.out.println("Events array is empty.");
+                return new ArrayList<>();
+            }
 
             return getItemList(events);
         } catch (Exception e) {
+            System.err.println("Error calling TicketMaster API: " + e.getMessage());
             e.printStackTrace();
         }
-        return null; // Return null in case of an error
+        return new ArrayList<>(); // Return empty list instead of null
     }
 
     @Override
     public List<Item> getNearbyEvents(double lat, double lon) {
+        return getNearbyEvents(lat, lon, null);
+    }
+
+    @Override
+    public List<Item> getNearbyEvents(double lat, double lon, String category) {
         // Construct the base URL for searching events near a specific location
-        String url = "http://" + API_HOST + SEARCH_PATH;
+        String url = "https://" + API_HOST + SEARCH_PATH;
 
         // Convert the latitude and longitude to a geohash with precision 4 (~20km)
         String geoHash = GeoHash.encodeGeohash(lat, lon, 4);
 
         // Build the query string with geohash and radius
         String query = String.format("apikey=%s&geoPoint=%s&radius=50", API_KEY, geoHash);
-        System.out.println("Sending request for nearby events.");
+        
+        // Add category filter if provided (filter by segment name)
+        if (category != null && !category.isEmpty() && !category.equalsIgnoreCase("All")) {
+            query += "&classificationName=" + urlEncodeHelper(category);
+        }
+        
+        System.out.println("Sending request for nearby events with category: " + (category != null ? category : "All"));
 
         // Send the request and return the list of nearby events
         return sendRequestToTicketMaster(url, query);
@@ -83,7 +130,7 @@ public class TicketMasterAPI implements ExternalAPI {
     @Override
     public List<Item> searchEventsByKeyword(double lat, double lon, String term) {
         // Construct the base URL for searching events by keyword
-        String url = "http://" + API_HOST + RECOMMEND_PATH;
+        String url = "https://" + API_HOST + SEARCH_PATH;
 
         // Convert the latitude and longitude to a geohash
         String geoHash = GeoHash.encodeGeohash(lat, lon, 4);

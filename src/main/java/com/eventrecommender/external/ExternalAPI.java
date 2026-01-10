@@ -5,6 +5,7 @@ import com.eventrecommender.entity.Item;
 
 public interface ExternalAPI {
 	public List<Item> getNearbyEvents(double lat, double lon);
+	public List<Item> getNearbyEvents(double lat, double lon, String category);
 	public List<Item> searchEventsByKeyword(double lat, double lon, String term);
 }
 

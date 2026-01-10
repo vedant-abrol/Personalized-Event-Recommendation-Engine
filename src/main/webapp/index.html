@@ -3,56 +3,66 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Event Recommendation">
+  <meta name="description" content="Discover personalized event recommendations near you">
   <title>Event Recommender</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="static/styles/main.css">
 </head>
 <body>
   <header class="header">
-    <div class="container header__content">
-      <div>
-        <p class="eyebrow">Smart Picks</p>
-        <h1 class="title"><span class="highlight">Event</span> Recommender</h1>
-        <p class="subtitle">Discover, favorite, and get curated recommendations wherever you go.</p>
-        <nav class="nav">
-          <button id="nearby-btn" class="nav-btn active"><i class="fa fa-map-marker"></i> Nearby</button>
-          <button id="fav-btn" class="nav-btn"><i class="fa fa-heart"></i> Favorites</button>
-          <button id="recommend-btn" class="nav-btn"><i class="fa fa-star"></i> Recommended</button>
-        </nav>
+    <div class="container header-inner">
+      <div class="header-content">
+        <div class="logo">
+          <div class="logo-icon">
+            <i class="fa fa-calendar-check-o"></i>
+          </div>
+          <div class="logo-text">
+            <h1 class="title">EventFinder</h1>
+            <p class="subtitle">Discover amazing events near you</p>
+          </div>
+        </div>
+        <button id="dark-mode-toggle" class="dark-mode-toggle" aria-label="Toggle dark mode">
+          <i class="fa fa-moon-o"></i>
+        </button>
       </div>
-      <div class="hero-card">
-        <p class="badge">Live</p>
-        <h3>Personalized picks refreshed in real time</h3>
-        <p class="muted">We use your favorites and location to surface the best events nearby.</p>
-        <div class="hero-actions">
-          <span class="pill">Curated by AI</span>
-          <span class="pill">Geo-aware</span>
-          <span class="pill">One-tap save</span>
+      <nav class="nav">
+        <button id="nearby-btn" class="nav-btn active">
+          <i class="fa fa-map-marker"></i>
+          <span>Nearby</span>
+        </button>
+        <button id="fav-btn" class="nav-btn">
+          <i class="fa fa-heart"></i>
+          <span>Favorites</span>
+        </button>
+        <button id="recommend-btn" class="nav-btn">
+          <i class="fa fa-star"></i>
+          <span>For You</span>
+        </button>
+      </nav>
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label for="category-filter" class="filter-label">
+            <i class="fa fa-filter"></i>
+            <span>Category</span>
+          </label>
+          <select id="category-filter" class="category-select">
+            <option value="All">All Categories</option>
+            <option value="Music">Music</option>
+            <option value="Sports">Sports</option>
+            <option value="Arts & Theatre">Arts & Theatre</option>
+            <option value="Film">Film</option>
+            <option value="Comedy">Comedy</option>
+            <option value="Family">Family</option>
+          </select>
         </div>
       </div>
-      <button id="dark-mode-toggle" class="dark-mode-btn" aria-label="Toggle dark mode">
-        <i class="fa fa-moon-o"></i>
-      </button>
     </div>
   </header>
 
   <main>
     <section class="content container">
       <div id="status-banner" class="status-banner" hidden></div>
-      <div class="section-header">
-        <div>
-          <p class="eyebrow">Event feed</p>
-          <h2>See what's trending near you</h2>
-          <p class="muted">Switch tabs to explore nearby events, your saved favorites, or personalized picks.</p>
-        </div>
-        <div class="chip-row">
-          <span class="chip"><i class="fa fa-bolt"></i> Instant refresh</span>
-          <span class="chip"><i class="fa fa-shield"></i> Secure API</span>
-          <span class="chip"><i class="fa fa-mobile"></i> Mobile-first</span>
-        </div>
-      </div>
       <ul id="item-list" class="item-list">
         <!-- Items will be dynamically loaded here -->
       </ul>
@@ -60,16 +70,8 @@
   </main>
 
   <footer>
-    <div class="container footer-grid">
-      <div>
-        <h4>Event Recommender</h4>
-        <p class="muted">Powered by TicketMaster and crafted for enthusiasts.</p>
-      </div>
-      <div class="footer-meta">
-        <span class="pill">Dark mode ready</span>
-        <span class="pill">Made with ❤️</span>
-        <span class="pill">2024</span>
-      </div>
+    <div class="container footer-content">
+      <p class="muted"><i class="fa fa-ticket"></i> Powered by TicketMaster API</p>
     </div>
   </footer>
 
